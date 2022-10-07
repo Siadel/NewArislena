@@ -1,0 +1,69 @@
+{
+    "" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "정지!" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "도움" : {
+        "description" : "모두",
+        "brief" : "명령어 정보를 출력합니다.",
+        "usage" : "!도움 {명령어...}",
+        "help" : "{명령어}를 입력하면, 해당 명령어의 자세한 정보를 출력합니다."
+    },
+    "안녕" : {
+        "description" : "모두",
+        "brief" : "시험용 명령어",
+        "usage" : "!안녕",
+        "help" : "따로 설명은 적지 않겠습니다."
+    },
+    "지역생성" : {
+        "description" : "도우미 이상",
+        "brief" : "지역을 생성합니다.",
+        "usage" : "!지역생성 [지역명/ 기본값 \"\"] {만들 개수/ 기본값 1}",
+        "help" : "{만들 개수}에 0을 넣으면 작동하지 않습니다."
+    },
+    "지역삭제" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "나라생성" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "나라삭제" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "역할부여" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "역할해제" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    },
+    "채널생성" : {
+        "description" : "",
+        "brief" : "",
+        "usage" : "",
+        "help" : ""
+    }
+    
+}

@@ -1,0 +1,14 @@
+areaframe = {
+    "Area.ID" : {
+        "name": ,
+        "food_stat": ,
+        "material_stat": ,
+        "free_stat": ,
+        "food" : ,
+        "material" : ,
+        }
+}
+
+nationframe = {
+
+}
