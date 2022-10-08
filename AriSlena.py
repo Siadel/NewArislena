@@ -4,7 +4,7 @@ import json
 import logging
 import discord
 from discord.ext import commands
-from typing import Union
+from typing import Any, Union
 
 # 사용자 정의 모듈
 import AriSys # 여기서 이 모듈의 코드가 한 차례 실행됨
@@ -46,17 +46,18 @@ def calc_embed(data_length):
     # 몇 번째 임베드에 들어갈 데이터인지, 혹은 임베드 몇 개가 있어야 할지 계산
     return int((data_length-1) / FIELDS_IN_ONE_EMBED) + 1
 
-def enumerate_fields(iterable):
+def enumerate_fields(iterable) -> list[tuple[int, Any]]:
     res = []
     for i, it in enumerate(iterable):
         i += 1
         res.append((i - (FIELDS_IN_ONE_EMBED * (calc_embed(i) - 1)), it))
     return res
 
-def initialize_embed(whole_embeds, fieldn=1):
+def initialize_embed(fields:int, embedn=1) -> tuple[discord.Embed, int]:
+    # fields의 개수에 따라 임베드 몇 개가 있어야 할 지 계산 + 임베드 번호 붙이기
     embed = discord.Embed()
-    embed.title = f"목록 : {calc_embed(fieldn)} 중 {whole_embeds}"
-    return embed
+    embed.title = f"목록 : {embedn} 중 {calc_embed(fields)}"
+    return embed, embedn+1
 
 def fetch_member(member_name_disc:str, guild:discord.Guild) -> discord.Member:
     # 이름과 식별자를 모두 쳐야 검색 가능함
@@ -204,9 +205,8 @@ async def help(ctx:commands.Context, *command_names):
             if c.name in command_names:
                 picked_cmds.append(c)
         cmds = picked_cmds
-    whole_embeds = calc_embed(len_commands)
 
-    embed = initialize_embed(whole_embeds)
+    embed, embedn = initialize_embed(len_commands)
     for fieldn, command in enumerate_fields(cmds):
         if command_names:  # 인자가 있을 때
             value = f">>> **{command.description}** 사용 가능\n\n{command.usage}\n\n{command.help}"
@@ -217,7 +217,7 @@ async def help(ctx:commands.Context, *command_names):
         embed.add_field(name=command.name, value=value, inline=inline)
         if fieldn == FIELDS_IN_ONE_EMBED:  # 임베드 필드 수 제한 구현
             await ctx.send(embed=embed)
-            embed = initialize_embed(whole_embeds, fieldn)
+            embed, embedn = initialize_embed(len_commands, embedn)
 
     await ctx.send(embed=embed) # 남는 필드가 들어 있는 엠베드 출력
 
