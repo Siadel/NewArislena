@@ -35,7 +35,6 @@ roles = {
 
 # 편의성 전역변수
 DOUMI = ["관리자", "도우미"]
-OWNER = ["관리자", "도우미", "오너"]
 
 # static 변수
 ENTER = "\n"
@@ -92,6 +91,8 @@ async def on_ready():
 
 @Ari.event
 async def on_command_error(ctx:commands.Context, exception):
+    # 오류문구 번역 (이외의 것들은 기본 오류 문구로 대체)
+    # exception은 오류 객체 혹은 오류 메세지
     if isinstance(exception, commands.errors.MissingRole):
         exception = f"{exception.missing_role} 역할이어야 해요!"
 
@@ -150,16 +151,6 @@ async def remove_nation(ctx:commands.Context, nation_id):
 
 
 # 도우미 명령어 : 관리자 명령어 중 행정처리에 특화된 명령어들
-# (도우미 역할을 이미 만들었는지?)
-# (도우미 역할 이상인 사람이라면 도우미 역할이 없어도 도우미 명령어를 쓸 수 있는지? <- 의도한 것)
-
-@Ari.command(name="나라생성", **ARIHELP["나라생성"])
-@commands.has_any_role(*DOUMI)
-async def add_nation(ctx:commands.Context, nation_name:str):
-    # 구현 안 됨
-    pass
-
-
 
 @Ari.command(name="역할부여", **ARIHELP["역할부여"]) # 관리자 혹은 관리자가 아닌 이에게, 관리자가 아닌 역할 부여
 @commands.has_any_role(*DOUMI)
@@ -191,6 +182,12 @@ async def emergency_phase(ctx:commands.Context):
 # TODO: 채널생성 
 
 # 오너 명령어
+@Ari.command(name="나라생성", **ARIHELP["나라생성"])
+@commands.has_role("오너")
+async def add_nation(ctx:commands.Context, nation_name:str):
+    # 구현 안 됨
+    pass
+
 
 # 전체 명령어
 @Ari.command(name="도움", **ARIHELP["도움"])

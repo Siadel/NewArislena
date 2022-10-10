@@ -36,9 +36,9 @@
         "help" : ""
     },
     "나라생성" : {
-        "description" : "",
-        "brief" : "",
-        "usage" : "",
+        "description" : "오너",
+        "brief" : "오너에게 귀속되는 나라를 생성합니다.",
+        "usage" : "!나라생성 [나라명]",
         "help" : ""
     },
     "나라삭제" : {
