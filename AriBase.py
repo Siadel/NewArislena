@@ -1,151 +1,170 @@
+from AriExce import *
 # 지역과 나라를 구성하는 데 쓰이는 것들
 
 # 자원
 class Resource:
 
-    def __init__(self, amount:int):
-        self.amount = amount
+    def __init__(self):
+        self.quantity:int = 0
 
     def __add__(self, other:int):
-        self.amount += other
+        self.quantity += other
     
     def __sub__(self, other:int):
-        self.amount -= other
+        self.quantity -= other
     
     def __mul__(self, other:int):
-        self.amount *= other
+        self.quantity *= other
 
 class StoreResource(Resource):
 
-    def __init__(self, amount:int, storage:int):
-        super().__init__(amount)
-        self.storage:int = storage
+    def __init__(self):
+        super().__init__()
+        self.storelimit = 0
 
     def __add__(self, other: int):
-        predict = self.amount + other
-        if predict > self.storage:
-            self.amount = predict
+        if self.quantity + other > self.storelimit:
+            raise OverTheLimit()
         else:
             super().__add__(other)
     
     def __sub__(self, other: int):
-        predict = self.amount - other
-        if predict < self.storage:
-            self.amount = 0
+        if self.quantity - other < self.storelimit:
+            raise BelowZero()
         else:
             super().__add__(other)
 
 class BasicResource(StoreResource):
 
-    initial_storage = 100
-
-    def __init__(self, amount:int, storage:int):
-        super().__init__(amount)
-        self.storage:int = storage
+    def __init__(self):
+        super().__init__()
+        self.storelimit:int = 100
 
 class DevelopmentalResource(Resource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
-class AdvancedResource(StoreResource):
+class AdvancedResource(Resource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 
 class Food(BasicResource):
 
-    def __init__(self, amount:int, storage:int):
-        super().__init__(amount, storage)
+    def __init__(self):
+        super().__init__()
 
 class Material(BasicResource):
 
-    def __init__(self, amount:int, storage:int):
-        super().__init__(amount, storage)
+    def __init__(self):
+        super().__init__()
 
 class Tech(DevelopmentalResource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 class Culture(DevelopmentalResource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 class Gold(AdvancedResource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 class Faith(AdvancedResource):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
+
+class Power(Resource):
+
+    def __init__(self):
+        super().__init__()
 
 
 # 스탯
 class Stat:
 
-    def __init__(self, amount:int):
-        self.amount = amount
-    
+    def __init__(self):
+        self.quantity = 0
+        self.food_consumption = 0
+        self.material_consumption = 0
+        self.gold_consumption = 0
+        self.yld = 0
 
 class BasicResourceStat(Stat):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 class DevelopmentalResourceStat(Stat):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 class AdvancedResourseStat(Stat):
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
 
 
 class FoodStat(BasicResourceStat):
 
-    initial_material_consumption = 1
-    initial_production = 2
-
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
+        self.material_consumption = 1
+        self.yld = 2
 
 class MaterialStat(BasicResourceStat):
 
-    initial_food_consumption = 1
-    initial_production = 4
-
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 1
+        self.yld = 4
 
 class TechStat(DevelopmentalResourceStat):
 
-    initial_food_consumption = 1
-    initial_material_consumption = 2
-
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 1
+        self.material_consumption = 2
+        self.gold_consumption = 2
+        self.yld = 1
     
 class CultureStat(DevelopmentalResourceStat):
 
-    initial_food_consumption = 2
-    initial_material_consumption = 1
-
-    def __init__(self, amount:int):
-        super().__init__(amount)
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 2
+        self.material_consumption = 1
+        self.gold_consumption = 2
+        self.yld = 1
 
 class CommercialStat(AdvancedResourseStat):
 
-    initial_food_consumption = 1
-    initial_material_consumption = 1
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 1
+        self.material_consumption = 1
+        self.yld = 16
 
-    def __init__(self, amount:int):
-        super().__init__(amount)
+class FaithStat(AdvancedResourseStat):
 
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 1
+        self.material_consumption = 1
+        self.yld = 8
 
+class PowerStat(Stat):
+
+    def __init__(self):
+        super().__init__()
+        self.food_consumption = 1
+        self.material_consumption = 2
+        self.gold_consumption = 3

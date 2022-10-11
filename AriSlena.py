@@ -1,13 +1,11 @@
 # 기성 모듈
 from sys import exit
-import json
 import logging
 import discord
 from discord.ext import commands
-from typing import Any, Union
 
 # 사용자 정의 모듈
-import AriSys # 여기서 이 모듈의 코드가 한 차례 실행됨
+from AriCont import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
 with open("token.json", "r") as tk:
@@ -130,7 +128,7 @@ async def hello(ctx:commands.Context, *args):
 @Ari.command(name="지역생성", **ARIHELP["지역생성"]) # 지역생성 명령어 (관리자)
 @commands.has_role("관리자")
 async def generate_area(ctx:commands.Context, name:str):
-    area = AriSys.AriArea.generate(name)
+    area = AriArea.generate(name)
     emb = discord.Embed()
     emb.add_field(name="생성된 지역", value=str(area.info()))
     await ctx.send("지역 생성이 완료되었어요!", embed=emb)
