@@ -8,9 +8,9 @@ from discord.ext import commands
 from AriCont import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
-with open("token.json", "r") as tk:
+with open("./bases/token.json", "r") as tk:
     TOKEN = json.load(tk)["token"]
-with open("helpmessages.json", "r", encoding="utf-8") as hl:
+with open("./bases/helpmessages.json", "r", encoding="utf-8") as hl:
     ARIHELP = json.load(hl)
 
 # discord.log라는 파일에 시스템 로그 출력 (재시작하면 내용이 지워지고 처음부터 다시 작성됨)
@@ -180,7 +180,7 @@ async def emergency_phase(ctx:commands.Context):
 # TODO: 채널생성 
 
 # 오너 명령어
-@Ari.command(name="나라생성", **ARIHELP["나라생성"])
+@Ari.command(name="건국", **ARIHELP["건국"])
 @commands.has_role("오너")
 async def add_nation(ctx:commands.Context, nation_name:str):
     # 구현 안 됨
