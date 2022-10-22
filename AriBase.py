@@ -1,22 +1,83 @@
 from AriExce import *
+import json
+
+# json 데이터 저장 함수
+# 위에 있는 데이터 저장 함수 이용
+# filename 파라미터에 area가 포함되어 있으면
+# ./datas/area.json 파일에 저장
+# filename 파라미터에 nation이 포함되어 있으면
+# ./datas/nation.json 파일에 저장
+
+def save_json(data: dict, filename: str) -> None:
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
+
+# json 데이터 불러오기 함수
+def load_json(filename: str) -> dict|None:
+    with open(filename, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+ari_const = load_json("./bases/const.json")
+
 # 지역과 나라를 구성하는 데 쓰이는 것들
 
-# 기초 (추상)
+# 기타
 
-class Tradable:
+# 옵션들 (필요할 지는 모르겠음)
+
+class Option:
 
     def __init__(self):
+        pass
+
+class AreaOption(Option):
+
+    def __init__(self):
+        pass
+
+# 기초
+
+class AriBase:
+
+    def __init__(self):
+        self.name = ""
+        self.coda = True
         self.tradable = True
 
-class Untradable:
+    def change_coda(self):
+        # self.coda를 반전시킴
+        self.coda = not self.coda
+    
+    def nominative(self):
+        # self.coda가 True면 self.name + "이"를 반환
+        # False면 self.name + "가"를 반환
+        if self.coda:
+            return self.name + "이"
+        else:
+            return self.name + "가"
+    
+    def objective(self):
+        # self.coda가 True면 self.name + "을"를 반환
+        # False면 self.name + "를"를 반환
+        if self.coda:
+            return self.name + "을"
+        else:
+            return self.name + "를"
+    
+    def topicmarker(self):
+        # self.coda가 True면 self.name + "은"를 반환
+        # False면 self.name + "는"를 반환
+        if self.coda:
+            return self.name + "은"
+        else:
+            return self.name + "는"
+
+
+class Value(AriBase):
 
     def __init__(self):
-        self.tradable = False
-
-class Valuable:
-
-    def __init__(self, value):
-        self.value = value
+        super().__init__()
+        self.value = 0
 
     def add_base(self, other):
         if isinstance(other, int):
@@ -62,218 +123,229 @@ class Valuable:
 
 
 # 단계 (추상)
-class Level(Valuable, Untradable):
+class Level(Value):
 
-    def __init__(self, value):
-        Valuable.__init__(self, value)
-        Untradable.__init__(self)
+    def __init__(self):
+        super().__init__()
+        self.coda = False
+        self.tradable = False
         self.scale: int = 0
     
-    def impact(self):
+    def impact(self) -> float:
         return round((1 + self.scale) ** self.value, 4)
 
 class Abundance(Level):
 
-    def __init__(self, value):
-        super().__init__(value)
+    def __init__(self):
+        super().__init__()
         self.scale = 0.25
+
+class Fertility(Abundance):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "자원 풍요 단계"
+
+class Richness(Abundance):
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "자재 풍요 단계"
+
+class Eureka(Abundance):
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "과학 풍요 단계"
+
+class Inspiration(Abundance):
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "문화 풍요 단계"
 
 # 단계 
 class Amenity(Level):
 
-    def __init__(self, value):
-        super().__init__(value)
+    def __init__(self):
+        super().__init__()
+        self.name = "쾌적 단계"
         self.scale = 0.1
 
-class Fertility(Abundance):
 
-    def __init__(self, value):
-        super().__init__(value)
 
-class Richness(Abundance):
-
-    def __init__(self, value):
-        super().__init__(value)
-
-# 전략 (추상)
-class Strategy:
-
-    def __init__(self):
-        pass
-
-# 전략
-class DefaultStrategy(Strategy):
+# 자원
+class Resource(Value):
 
     def __init__(self):
         super().__init__()
-
-# 자원 (추상)
-class Resource(Valuable, Tradable):
-
-    def __init__(self, value):
-        Valuable.__init__(self, value)
-        Tradable.__init__(self)        
-
-class Storable(Resource):
-
-    def __init__(self, value):
-        super().__init__(value)
-
-    @staticmethod
-    def storelimit(initial=100):
-        return initial
+        self.has_limitation = True
+        self.storage = 0
 
     def expire(self):
         # 저장량을 초과한 자원 제거
-        storelimit = self.storelimit()
-        if self.value > storelimit:
-            self.value = storelimit
+        # 단, self.has_limitation이 False면 아무 일도 일어나지 않음
+        if self.has_limitation and self.value > self.storage:
+            self.value = self.storage
 
-# 자원
-class Food(Storable):
+class BasicResource(Resource):
+    def __init__(self):
+        super().__init__()
 
-    def __init__(self, value):
-        super().__init__(value)
+class DevelopmentResource(Resource):
+    def __init__(self):
+        super().__init__()
+        self.has_limitation = False
 
-class Material(Storable):
+class AdvancedResource(Resource):
+    def __init__(self):
+        super().__init__()
+        self.has_limitation = False
 
-    def __init__(self, value):
-        super().__init__(value)
+class Food(BasicResource):
 
-class Science(Resource):
+    def __init__(self):
+        super().__init__()
+        self.name = "식량"
 
-    def __init__(self, value):
-        super().__init__(value)
+class Material(BasicResource):
 
-class Culture(Resource):
+    def __init__(self):
+        super().__init__()
+        self.name = "자재"
+        self.coda = False
 
-    def __init__(self, value):
-        super().__init__(value)
+class Science(DevelopmentResource):
 
-class Gold(Resource):
+    def __init__(self):
+        super().__init__()
+        self.name = "과학"
 
-    def __init__(self, value):
-        super().__init__(value)
+class Culture(DevelopmentResource):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "문화"
+        self.coda = False
+
+class Gold(AdvancedResource):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "금"
 
 # 행정력
 class AdministrationPower(Resource):
 
-    def __init__(self, value):
-        super().__init__(value)
+    def __init__(self):
+        super().__init__()
+        self.name = "행정력"
+        self.tradable = False
+        self.has_limitation = False
         self.accomodatable_population = 3
 
-# 인구 (추상)
-class Population(Resource):
+# 자원분야
 
-    def __init__(self, value):
-        super().__init__(value)
-        self.humanpower = 0
-        
-        self.food_cost = 0
-        self.material_cost = 0
-        self.gold_cost = 0
+class Productive(AriBase):
 
+    def __init__(self):
+        super().__init__()
         self.food_yield = 0
         self.material_yield = 0
         self.science_yield = 0
         self.culture_yield = 0
         self.gold_yield = 0
+        self.administrationpower_yield = 0
 
-# 인구
-class Labor(Population):
-
-    def __init__(self, value):
-        super().__init__(value)
-        self.humanpower = 3
-
-class Worker(Labor):
-
-    def __init__(self, value):
-        super().__init__(value)
-        self.humanpower = 2
-        self.modifier = 3
-
-class Administrative(Population):
-
-    def __init__(self, value):
-        super().__init__(value)
-        self.humanpower = 1
-        self.food_cost = 2
-        self.material_cost = 2
-
-class Military(Population):
-
-    def __init__(self, value):
-        super().__init__(value)
-        self.humanpower = 1
-        self.food_cost = 2
-        self.material_cost = 4
-
-
-# TODO: 분야 다시 짜야 함
-# 분야 (추상)
-class Field:
-
-    def __init__(self):
-        pass
+        self.food_cost = 0
+        self.material_cost = 0
+        self.gold_cost = 0
     
     def calc_yield(self):
         pass
 
-# 자원분야(추상)
+class FoodField(Productive):
 
-class ResourceField(Field):
-
-    def __init__(self, labors:Labor, workers:Worker):
+    def __init__(self):
         super().__init__()
-        self.labors = labors
-        self.workers = workers
+        self.name = "식량 분야"
+        self.food_yield = 3
+        self.material_cost = 1
 
-class FoodField(ResourceField):
-
-    def __init__(self, labors:Labor, workers:Worker):
-        super().__init__(labors, workers)
-        self.labors.food_yield = 1
-        self.workers.food_yield = 3
-
-        self.workers.material_cost = 1
-
-class MaterialField(ResourceField):
+class MaterialField(Productive):
     
-    def __init__(self, labors:Labor, workers:Worker):
-        super().__init__(labors, workers)
-        self.labors.material_yield = 1
-        self.workers.material_yield
-
-        self.workers.food_cost = 1
-
-class ScienceField(ResourceField):
-    
-    def __init__(self, labors:Labor, workers:Worker):
-        super().__init__(labors, workers)
-        self.workers.food_cost = 1
-        self.workers.material_cost = 2
-
-class CultureField(ResourceField):
-    
-    def __init__(self, labors:Labor, workers:Worker):
-        super().__init__(labors, workers)
-        self.workers.food_cost = 2
-        self.workers.material_cost = 1
-
-class CommercialField(ResourceField):
-    
-    def __init__(self, labors:Labor, workers:Worker):
-        super().__init__(labors, workers)
-
-class AdministrationField(Field):
-
-    def __init__(self, administratives:Administrative):
+    def __init__(self):
         super().__init__()
-        self.administratives = administratives
+        self.name = "자재 분야"
+        self.material_yield = 6
+        self.food_cost = 1
 
-class MilitaryField(Field):
-
-    def __init__(self, military:Military):
+class ScienceField(Productive):
+    
+    def __init__(self):
         super().__init__()
-        self.military = military
+        self.name = "과학 분야"
+        self.science_yield = 1
+        
+        self.food_cost = 1
+        self.material_cost = 2
+
+class CultureField(Productive):
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "문화 분야"
+        self.culture_yield = 1
+
+        self.food_cost = 2
+        self.material_cost = 1
+
+class CommercialField(Productive):
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "상업 분야"
+        self.gold_yield = 12
+
+        self.food_cost = 1
+        self.material_cost = 1
+
+class AdministrationField(Productive):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "행정 분야"
+        self.administrationpower_yield = 1
+
+        self.food_cost = 1
+        self.material_cost = 1
+        self.gold_cost = 4
+
+
+# 턴
+class OnlyOneClass(AriBase):
+
+    instance_generated = False
+
+    def __new__(cls):
+        if not cls.instance_generated:
+            cls.instance_generated = True
+            return super().__new__(cls)
+        else:
+            return None
+
+class AriTurn(OnlyOneClass, Value):
+    # 단 한 개만 존재하는 클래스
+    # 게임의 턴을 관리하는 클래스
+    # 턴이 넘어갈 때마다 turn을 1 증가시킴
+    # turn이 0이면 게임이 시작되지 않은 상태
+    # turn이 60이면 게임이 끝남
+
+    def __init__(self):
+        OnlyOneClass.__init__(self)
+        Value.__init__(self)
+        self.name = "턴"
+        self.turn_limit = 60
+
+    def next_turn(self):
+        self.value += 1

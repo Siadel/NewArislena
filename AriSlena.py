@@ -13,6 +13,12 @@ with open("./bases/token.json", "r") as tk:
 with open("./bases/helpmessages.json", "r", encoding="utf-8") as hl:
     ARIHELP = json.load(hl)
 
+# 지역 데이터 클래스로 로딩
+AriArea_data = dict()
+for k, v in ari_area.items():
+    AriArea_data[k] = AriArea()
+    AriArea_data[k].port(**v)
+
 # discord.log라는 파일에 시스템 로그 출력 (재시작하면 내용이 지워지고 처음부터 다시 작성됨)
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
 
