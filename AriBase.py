@@ -1,4 +1,5 @@
 from AriExce import *
+from typing import *
 import json
 
 # json 데이터 저장 함수
@@ -120,7 +121,20 @@ class Value(AriBase):
     def __rmul__(self, other):
         self.mul_base(other)
 
+class OnlyOneClass(AriBase):
 
+    instance_generated = False
+
+    def __new__(cls):
+        if not cls.instance_generated:
+            cls.instance_generated = True
+            return super().__new__(cls)
+        else:
+            return None
+
+    def __init__(self):
+        super().__init__()
+        self.tradable = False
 
 # 단계 (추상)
 class Level(Value):
@@ -246,7 +260,23 @@ class AdministrationPower(Resource):
 
 # 자원분야
 
-class Productive(AriBase):
+class Place(Value):
+
+    def __init__(self):
+        # 이 클래스의 .value는 장소에 종사하는 인구수를 나타냄
+        super().__init__()
+        self.coda = False
+        self.tradable = False
+
+class Residence(Place):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "주거지"
+        
+
+
+class Workplace(Place):
 
     def __init__(self):
         super().__init__()
@@ -264,7 +294,7 @@ class Productive(AriBase):
     def calc_yield(self):
         pass
 
-class FoodField(Productive):
+class FoodField(Workplace):
 
     def __init__(self):
         super().__init__()
@@ -272,7 +302,7 @@ class FoodField(Productive):
         self.food_yield = 3
         self.material_cost = 1
 
-class MaterialField(Productive):
+class MaterialField(Workplace):
     
     def __init__(self):
         super().__init__()
@@ -280,7 +310,7 @@ class MaterialField(Productive):
         self.material_yield = 6
         self.food_cost = 1
 
-class ScienceField(Productive):
+class ScienceField(Workplace):
     
     def __init__(self):
         super().__init__()
@@ -290,7 +320,7 @@ class ScienceField(Productive):
         self.food_cost = 1
         self.material_cost = 2
 
-class CultureField(Productive):
+class CultureField(Workplace):
     
     def __init__(self):
         super().__init__()
@@ -300,7 +330,7 @@ class CultureField(Productive):
         self.food_cost = 2
         self.material_cost = 1
 
-class CommercialField(Productive):
+class CommercialField(Workplace):
     
     def __init__(self):
         super().__init__()
@@ -310,7 +340,7 @@ class CommercialField(Productive):
         self.food_cost = 1
         self.material_cost = 1
 
-class AdministrationField(Productive):
+class AdministrationField(Workplace):
 
     def __init__(self):
         super().__init__()
@@ -323,16 +353,6 @@ class AdministrationField(Productive):
 
 
 # 턴
-class OnlyOneClass(AriBase):
-
-    instance_generated = False
-
-    def __new__(cls):
-        if not cls.instance_generated:
-            cls.instance_generated = True
-            return super().__new__(cls)
-        else:
-            return None
 
 class AriTurn(OnlyOneClass, Value):
     # 단 한 개만 존재하는 클래스

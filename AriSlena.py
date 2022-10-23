@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 # 사용자 정의 모듈
-from AriCont import * # 여기서 이 모듈의 코드가 한 차례 실행됨
+from AriManage import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
 with open("./bases/token.json", "r") as tk:
@@ -14,10 +14,10 @@ with open("./bases/helpmessages.json", "r", encoding="utf-8") as hl:
     ARIHELP = json.load(hl)
 
 # 지역 데이터 클래스로 로딩
-AriArea_data = dict()
+AriA: dict[str, AriArea] = dict()
 for k, v in ari_area.items():
-    AriArea_data[k] = AriArea()
-    AriArea_data[k].port(**v)
+    AriA[k] = AriArea()
+    AriA[k].port(**v)
 
 # discord.log라는 파일에 시스템 로그 출력 (재시작하면 내용이 지워지고 처음부터 다시 작성됨)
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
@@ -45,6 +45,12 @@ ENTER = "\n"
 FIELDS_IN_ONE_EMBED = 9 # 임베드 하나에 들어갈 필드 제한+1 (실제 제한은 -1한 값)
 
 # 유저 함수
+def colon_param_value(param:str) -> str:
+    # 입력된 파라미터를 ":" 문자를 기준으로 파싱
+    # ":" 문자 오른쪽에 있었던 문자열을 반환
+    return param.split(":")[1].strip()
+
+
 def calc_embed(data_length): 
     # 몇 번째 임베드에 들어갈 데이터인지, 혹은 임베드 몇 개가 있어야 할지 계산
     return int((data_length-1) / FIELDS_IN_ONE_EMBED) + 1
@@ -87,6 +93,14 @@ def fetch_text_channel(channel_name:str, guild:discord.Guild) -> discord.TextCha
         if channel_name == tch.name:
             return tch
 
+def fetch_member_roles(member:discord.Member) -> list[str]:
+    # 멤버의 역할 이름들을 반환
+    return [r.name for r in member.roles]
+
+class AllowedOnlyAdmin(commands.errors.CommandError):
+    def __init__(self, message="관리자만 가능한 명령이에요!", *args):
+        super().__init__(message, *args)
+
 @Ari.event
 async def on_ready():
     Ari.activity = discord.Game("아리슬레나 운영")
@@ -108,7 +122,7 @@ async def on_command_error(ctx:commands.Context, exception):
         # {argument name} is a required argument that is missing.
         #exception = f"{exception.param}"
         exception = f"{exception.param} 인자가 비어 있어요!"
-    embed = discord.Embed(color=255)
+    embed = discord.Embed(color=0xe67e22)
     embed.add_field(name="짜잔~ 오류가 발생했어요!", 
                     value=f"{'' if type(exception) is str else str(type(exception))+ENTER}{exception}")
     await ctx.send(embed=embed)
@@ -133,8 +147,18 @@ async def hello(ctx:commands.Context, *args):
 # 관리자 명령어 : 직접적으로 게임 데이터에 영향을 주면서, 오/남용 소지가 있는 명령어들
 @Ari.command(name="지역생성", **ARIHELP["지역생성"]) # 지역생성 명령어 (관리자)
 @commands.has_role("관리자")
-async def generate_area(ctx:commands.Context, name:str):
-    area = AriArea.generate(name)
+async def generate_area(ctx:commands.Context, *args):
+    area = AriArea()
+    area.generate()
+    for arg in args:
+        if "이름" in arg:
+            area.name = colon_param_value(arg)
+        elif "폐음절" in arg and colon_param_value(arg) == "아님":
+            area.coda = False
+
+    area.commit()
+    AriA.setdefault(area.ID, area)
+    AriS.save("area", "system")
     emb = discord.Embed()
     emb.add_field(name="생성된 지역", value=str(area.info()))
     await ctx.send("지역 생성이 완료되었어요!", embed=emb)
@@ -143,9 +167,15 @@ async def generate_area(ctx:commands.Context, name:str):
 
 @Ari.command(name="지역삭제", **ARIHELP["지역삭제"])
 @commands.has_role("관리자")
-async def remove_area(ctx:commands.Context, area_id):
-    # 구현 안 됨
-    pass
+async def remove_area(ctx:commands.Context, area_id:str):
+    # 받은 area_id를 가진 지역을 삭제함
+    # AriA에서도 삭제
+    # AriS.remove_content()도 실행
+    area_name = AriA[area_id].nominative()
+
+    del AriA[area_id]
+    AriS.remove_content(area_id, "area")
+    await ctx.send(f"지역 {area_name} 삭제됐어요!")
 
 @Ari.command(name="나라삭제", **ARIHELP["나라삭제"])
 @commands.has_role("관리자")
@@ -159,6 +189,9 @@ async def remove_nation(ctx:commands.Context, nation_id):
 @Ari.command(name="역할부여", **ARIHELP["역할부여"]) # 관리자 혹은 관리자가 아닌 이에게, 관리자가 아닌 역할 부여
 @commands.has_any_role(*DOUMI)
 async def attach_role(ctx:commands.Context, member_name_disc:str, role_name:str):
+    rls = fetch_member_roles(ctx.author)
+    if not "관리자" in rls and role_name in DOUMI:
+        raise AllowedOnlyAdmin()
     member = fetch_member(member_name_disc, ctx.guild)
     await member.add_roles(fetch_role(role_name, ctx.guild))
     await ctx.send(f"{member_name_disc}에게 {role_name} 역할을 부여했어요!")
@@ -166,6 +199,9 @@ async def attach_role(ctx:commands.Context, member_name_disc:str, role_name:str)
 @Ari.command(name="역할해제", **ARIHELP["역할해제"]) # 역할해제
 @commands.has_any_role(*DOUMI)
 async def detach_role(ctx:commands.Context, member_name_disc:str, role_name:str):
+    rls = fetch_member_roles(ctx.author)
+    if not "관리자" in rls and role_name in DOUMI:
+        raise AllowedOnlyAdmin()
     member = fetch_member(member_name_disc, ctx.guild)
     await member.remove_roles(fetch_role(role_name, ctx.guild))
     await ctx.send(f"{member_name_disc}에게서 {role_name} 역할을 해제했어요!")
@@ -192,6 +228,24 @@ async def add_nation(ctx:commands.Context, nation_name:str):
     # 구현 안 됨
     pass
 
+@Ari.command(name="지역리스트", **ARIHELP["지역리스트"])
+@commands.has_role("오너")
+async def list_area(ctx:commands.Context):
+
+    areas_length = len(AriA)
+    embed, embedn = initialize_embed(areas_length)
+    for fieldn, (k, v) in enumerate_fields(AriA.items()):
+        value = ""
+        value += f"지역 ID: {k}\n"
+        embed.add_field(name=f"{v.name}", value=value, inline=True)
+        if fieldn == FIELDS_IN_ONE_EMBED:
+            await ctx.send(embed=embed)
+            embed, embedn = initialize_embed(areas_length, embedn)
+
+    await ctx.send(embed=embed)
+    end_embed = discord.Embed()
+    end_embed.title = f"지역 총 개수: {len(AriA)}개"
+    await ctx.send(embed=end_embed)
 
 # 전체 명령어
 @Ari.command(name="도움", **ARIHELP["도움"])
