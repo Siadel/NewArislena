@@ -93,9 +93,8 @@ class AriSystem(AriContent, OnlyOneClass):
         OnlyOneClass.__init__(self)
         self.name = "아리슬레나"
         self.coda = False
-        self.__big_version = 0
-        self.__middle_version = 0
-        self.__small_version = 0
+        self.major_version = 0
+        self.minor_version = 2
         self.author = "Siadel#7457"
         self.areaseq = 0
         self.nationseq = 0

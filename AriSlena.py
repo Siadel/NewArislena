@@ -1,8 +1,8 @@
 # 기성 모듈
 from sys import exit
-import logging
 import discord
 from discord.ext import commands
+from discord import Option
 
 # 사용자 정의 모듈
 from AriManage import * # 여기서 이 모듈의 코드가 한 차례 실행됨
@@ -19,23 +19,23 @@ for k, v in ari_area.items():
     AriA[k] = AriArea()
     AriA[k].port(**v)
 
-# discord.log라는 파일에 시스템 로그 출력 (재시작하면 내용이 지워지고 처음부터 다시 작성됨)
-handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
-
 # 봇 권한 설정
 intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
 intents.message_content = True
 # 봇 객체 생성
-Ari = commands.Bot(command_prefix='!', intents=intents, help_command=None)
-AriCl = discord.Client(intents=intents)
+Ari = commands.Bot(command_prefix='아리야, ', intents=intents, help_command=None)
 
-# 디스코드 데이터
+# 디스코드 데이터 (테스트 서버)
 roles = {
     "관리자" : 1027528936147648542,
     "오너" : 1027536463811842138
 }
+
+# 왼쪽부터 테스트 서버, 아리슬레나 길드 ID
+GUILD_IDS = [414798376522219520, 645257232895705090]
+
 
 # 편의성 전역변수
 DOUMI = ["관리자", "도우미"]
@@ -97,15 +97,21 @@ def fetch_member_roles(member:discord.Member) -> list[str]:
     # 멤버의 역할 이름들을 반환
     return [r.name for r in member.roles]
 
+# 커스텀 예외 클래스
 class AllowedOnlyAdmin(commands.errors.CommandError):
     def __init__(self, message="관리자만 가능한 명령이에요!", *args):
         super().__init__(message, *args)
 
+# 작동부
 @Ari.event
 async def on_ready():
-    Ari.activity = discord.Game("아리슬레나 운영")
+    Ari.activity = discord.Game("명령어는 `아리`로 시작합니다~")
     print(f"Login bot: {Ari.user}")
-    print(f"Discord.py verision: {discord.__version__}")
+    print(f"Api verision: {discord.__version__}")
+
+    print(len(list(Ari.walk_application_commands())))
+    for c in Ari.walk_application_commands():
+        print(c)
 
 @Ari.event
 async def on_command_error(ctx:commands.Context, exception):
@@ -137,17 +143,29 @@ async def on_member_join(member:discord.Member):
 
 
 # 명령어 --------------------------------------------------------------------------------------------
+@Ari.slash_command(name="ping", description="아리의 핑을 확인합니다.", guild_ids=GUILD_IDS)
+async def ping(ctx):
+    await ctx.respond(f"핑: {round(Ari.latency*1000)}ms", ephemeral=True)
 
+@Ari.slash_command(name="안녕", **ARIHELP["안녕"], guild_ids=GUILD_IDS) # 슬래시 커맨드 시험용 명령어
+async def slashhello(ctx:discord.ApplicationContext,
+                name:Option(str, "이름", required=False, default="익명")):
+    author = ctx.author
+    await ctx.respond(f"안녕하세요, {author.name}님! 당신의 이름은 {name}이군요!")
+    await ctx.respond(f"2번 respond()할 수 있나 보네요.\n그리고 이 메세지는 당신에게만 보일 거에요.", ephemeral=True)
 
 @Ari.command(name="안녕", **ARIHELP["안녕"]) # 명령어 시험용 명령어
 async def hello(ctx:commands.Context, *args):
     author = ctx.message.author
+    # 다른 사람에게는 보이지 않고 명령한 사람에게만 보이는 ephemeral 메세지를 출력
+    # 그거 출력하려면 webhook을 만들어야 한다나 뭐라나
+    # 잘 모르겠어요
     await ctx.send(f"{author.mention}\n안녕하세요, {author.name}님! 입력하신 내용은 {args}입니다!")
 
 # 관리자 명령어 : 직접적으로 게임 데이터에 영향을 주면서, 오/남용 소지가 있는 명령어들
-@Ari.command(name="지역생성", **ARIHELP["지역생성"]) # 지역생성 명령어 (관리자)
+@Ari.slash_command(name="지역생성", **ARIHELP)
 @commands.has_role("관리자")
-async def generate_area(ctx:commands.Context, *args):
+async def generate_area(ctx:discord.ApplicationContext, *args):
     area = AriArea()
     area.generate()
     for arg in args:
@@ -161,7 +179,7 @@ async def generate_area(ctx:commands.Context, *args):
     AriS.save("area", "system")
     emb = discord.Embed()
     emb.add_field(name="생성된 지역", value=str(area.info()))
-    await ctx.send("지역 생성이 완료되었어요!", embed=emb)
+    await ctx.respond("지역 생성이 완료되었어요!", embed=emb)
 
 # TODO: 나라 생성, 지역 삭제, 나라 삭제, 지역 생성(+int argument: 해당 숫자 만큼의 무명 지역을 생성), 야만인 생성,
 
@@ -248,7 +266,7 @@ async def list_area(ctx:commands.Context):
     await ctx.send(embed=end_embed)
 
 # 전체 명령어
-@Ari.command(name="도움", **ARIHELP["도움"])
+@Ari.command(name="도와줘", **ARIHELP["도와줘"])
 async def help(ctx:commands.Context, *command_names):
     
     cmds = list(Ari.commands)
@@ -275,6 +293,18 @@ async def help(ctx:commands.Context, *command_names):
             embed, embedn = initialize_embed(len_commands, embedn)
 
     await ctx.send(embed=embed) # 남는 필드가 들어 있는 엠베드 출력
+    if not command_names:
+        await ctx.send("더 자세한 명령어 설명은 `!도움 <명령어>`로 확인해주세요!")
+
+
+@Ari.slash_command(name="도움", description="빗금 명령어에 정보를 출력합니다.", guild_ids=GUILD_IDS)
+async def slashhelp(ctx:discord.ApplicationContext,
+                    command_name = Option(str, "명령어", required=False)):
+    d = dict()
+    for command in Ari.application_commands:
+        d.setdefault(command.name, [command.description])
+    
+    await ctx.respond(d)
 
 # 건들지 마세요~
-Ari.run(TOKEN, log_handler=handler)
+Ari.run(TOKEN)

@@ -26,12 +26,12 @@ ari_const = load_json("./bases/const.json")
 
 # 옵션들 (필요할 지는 모르겠음)
 
-class Option:
+class AriOption:
 
     def __init__(self):
         pass
 
-class AreaOption(Option):
+class AreaOption(AriOption):
 
     def __init__(self):
         pass
