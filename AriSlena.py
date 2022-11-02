@@ -4,21 +4,16 @@ import discord
 from discord.ext import commands
 from discord import Option
 
+
 # 사용자 정의 모듈
-from AriManage import * # 여기서 이 모듈의 코드가 한 차례 실행됨
+from AriGovernment import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
-with open("./bases/token.json", "r") as tk:
-    TOKEN = json.load(tk)["token"]
-with open("./bases/helpmessages.json", "r", encoding="utf-8") as hl:
-    ARIHELP = json.load(hl)
-
-# 지역 데이터 클래스로 로딩
-AriA: dict[str, AriArea] = dict()
-for k, v in ari_area.items():
-    AriA[k] = AriArea()
-    AriA[k].port(**v)
-
+TOKEN:str = load_json("./bases/token.json")["token"]
+ARIHELP:dict[str, dict] = load_json("./bases/help.json")
+ARIDESCRIPTION = dict()
+for k, v in ARIHELP.items():
+    ARIDESCRIPTION[k] = v["description"]
 # 봇 권한 설정
 intents = discord.Intents.default()
 intents.presences = True
@@ -30,7 +25,7 @@ Ari = commands.Bot(command_prefix='아리야, ', intents=intents, help_command=N
 # 디스코드 데이터 (테스트 서버)
 roles = {
     "관리자" : 1027528936147648542,
-    "오너" : 1027536463811842138
+    "주인" : 1027536463811842138
 }
 
 # 왼쪽부터 테스트 서버, 아리슬레나 길드 ID
@@ -42,7 +37,7 @@ DOUMI = ["관리자", "도우미"]
 
 # static 변수
 ENTER = "\n"
-FIELDS_IN_ONE_EMBED = 9 # 임베드 하나에 들어갈 필드 제한+1 (실제 제한은 -1한 값)
+FIELDS_IN_ONE_EMBED = 9 # 임베드 하나에 들어갈 필드 제한
 
 # 유저 함수
 def colon_param_value(param:str) -> str:
@@ -105,18 +100,12 @@ class AllowedOnlyAdmin(commands.errors.CommandError):
 # 작동부
 @Ari.event
 async def on_ready():
-    Ari.activity = discord.Game("명령어는 `아리`로 시작합니다~")
+    Ari.change_presence(status=discord.Status.online, activity=discord.Game("아리슬레나 가꾸기"))
     print(f"Login bot: {Ari.user}")
-    print(f"Api verision: {discord.__version__}")
+    print(f"Api version: {discord.__version__}")
+    print(f"Arislena version: {ari_system.version()}")
 
-    print(len(list(Ari.walk_application_commands())))
-    for c in Ari.walk_application_commands():
-        print(c)
-
-@Ari.event
-async def on_command_error(ctx:commands.Context, exception):
-    # 오류문구 번역 (이외의 것들은 기본 오류 문구로 대체)
-    # exception은 오류 객체 혹은 오류 메세지
+async def on_error_base(exception):
     if isinstance(exception, commands.errors.MissingRole):
         exception = f"{exception.missing_role} 역할이어야 해요!"
 
@@ -128,10 +117,24 @@ async def on_command_error(ctx:commands.Context, exception):
         # {argument name} is a required argument that is missing.
         #exception = f"{exception.param}"
         exception = f"{exception.param} 인자가 비어 있어요!"
+
     embed = discord.Embed(color=0xe67e22)
     embed.add_field(name="짜잔~ 오류가 발생했어요!", 
                     value=f"{'' if type(exception) is str else str(type(exception))+ENTER}{exception}")
+    return embed
+
+@Ari.event
+async def on_command_error(ctx:commands.Context, exception:discord.errors.DiscordException):
+    # 오류문구 번역 (이외의 것들은 기본 오류 문구로 대체)
+    # exception은 오류 객체 혹은 오류 메세지
+    
+    embed = await on_error_base(exception)
     await ctx.send(embed=embed)
+
+@Ari.event
+async def on_application_command_error(ctx:discord.ApplicationContext, exception:discord.errors.DiscordException):
+    embed = await on_error_base(exception)
+    await ctx.respond(embed=embed)
 
 @Ari.listen('on_member_join') # tq 이거 왜 작동 안 함  
 async def on_member_join(member:discord.Member):
@@ -143,27 +146,23 @@ async def on_member_join(member:discord.Member):
 
 
 # 명령어 --------------------------------------------------------------------------------------------
-@Ari.slash_command(name="ping", description="아리의 핑을 확인합니다.", guild_ids=GUILD_IDS)
+@Ari.slash_command(name="핑", description=ARIHELP["핑 [/]"]["description"], guild_ids=GUILD_IDS)
 async def ping(ctx):
-    await ctx.respond(f"핑: {round(Ari.latency*1000)}ms", ephemeral=True)
+    await ctx.respond(f"핑: {round(Ari.latency*1000)}ms")
 
-@Ari.slash_command(name="안녕", **ARIHELP["안녕"], guild_ids=GUILD_IDS) # 슬래시 커맨드 시험용 명령어
-async def slashhello(ctx:discord.ApplicationContext,
+@Ari.slash_command(name="안녕", description=ARIHELP["안녕"]["description"], guild_ids=GUILD_IDS) # 슬래시 커맨드 시험용 명령어
+async def slash_hello(ctx:discord.ApplicationContext,
                 name:Option(str, "이름", required=False, default="익명")):
     author = ctx.author
     await ctx.respond(f"안녕하세요, {author.name}님! 당신의 이름은 {name}이군요!")
     await ctx.respond(f"2번 respond()할 수 있나 보네요.\n그리고 이 메세지는 당신에게만 보일 거에요.", ephemeral=True)
 
-@Ari.command(name="안녕", **ARIHELP["안녕"]) # 명령어 시험용 명령어
-async def hello(ctx:commands.Context, *args):
-    author = ctx.message.author
-    # 다른 사람에게는 보이지 않고 명령한 사람에게만 보이는 ephemeral 메세지를 출력
-    # 그거 출력하려면 webhook을 만들어야 한다나 뭐라나
-    # 잘 모르겠어요
-    await ctx.send(f"{author.mention}\n안녕하세요, {author.name}님! 입력하신 내용은 {args}입니다!")
+@Ari.command(name="안녕")
+async def hello(ctx:commands.Context):
+    await ctx.send(f"안녕하세요, {ctx.author.name}님!")
 
 # 관리자 명령어 : 직접적으로 게임 데이터에 영향을 주면서, 오/남용 소지가 있는 명령어들
-@Ari.slash_command(name="지역생성", **ARIHELP)
+@Ari.slash_command(name="지역생성", description=ARIHELP["지역생성 [/]"]["description"], guild_ids=GUILD_IDS)
 @commands.has_role("관리자")
 async def generate_area(ctx:discord.ApplicationContext, *args):
     area = AriArea()
@@ -175,27 +174,27 @@ async def generate_area(ctx:discord.ApplicationContext, *args):
             area.coda = False
 
     area.commit()
-    AriA.setdefault(area.ID, area)
-    AriS.save("area", "system")
+    ari_area.setdefault(area.ID, area)
+    ari_system.save("area", "system")
     emb = discord.Embed()
     emb.add_field(name="생성된 지역", value=str(area.info()))
     await ctx.respond("지역 생성이 완료되었어요!", embed=emb)
 
 # TODO: 나라 생성, 지역 삭제, 나라 삭제, 지역 생성(+int argument: 해당 숫자 만큼의 무명 지역을 생성), 야만인 생성,
 
-@Ari.command(name="지역삭제", **ARIHELP["지역삭제"])
+@Ari.command(name="지역삭제")
 @commands.has_role("관리자")
 async def remove_area(ctx:commands.Context, area_id:str):
     # 받은 area_id를 가진 지역을 삭제함
-    # AriA에서도 삭제
-    # AriS.remove_content()도 실행
-    area_name = AriA[area_id].nominative()
+    # ari_area에서도 삭제
+    # ari_system.remove_content()도 실행
+    area_name = ari_area[area_id].nominative()
 
-    del AriA[area_id]
-    AriS.remove_content(area_id, "area")
+    del ari_area[area_id]
+    ari_system.remove_content(area_id, "area")
     await ctx.send(f"지역 {area_name} 삭제됐어요!")
 
-@Ari.command(name="나라삭제", **ARIHELP["나라삭제"])
+@Ari.command(name="나라삭제")
 @commands.has_role("관리자")
 async def remove_nation(ctx:commands.Context, nation_id):
     # 구현 안 됨
@@ -204,7 +203,7 @@ async def remove_nation(ctx:commands.Context, nation_id):
 
 # 도우미 명령어 : 관리자 명령어 중 행정처리에 특화된 명령어들
 
-@Ari.command(name="역할부여", **ARIHELP["역할부여"]) # 관리자 혹은 관리자가 아닌 이에게, 관리자가 아닌 역할 부여
+@Ari.command(name="역할부여") # 관리자 혹은 관리자가 아닌 이에게, 관리자가 아닌 역할 부여
 @commands.has_any_role(*DOUMI)
 async def attach_role(ctx:commands.Context, member_name_disc:str, role_name:str):
     rls = fetch_member_roles(ctx.author)
@@ -214,7 +213,7 @@ async def attach_role(ctx:commands.Context, member_name_disc:str, role_name:str)
     await member.add_roles(fetch_role(role_name, ctx.guild))
     await ctx.send(f"{member_name_disc}에게 {role_name} 역할을 부여했어요!")
 
-@Ari.command(name="역할해제", **ARIHELP["역할해제"]) # 역할해제
+@Ari.command(name="역할해제") # 역할해제
 @commands.has_any_role(*DOUMI)
 async def detach_role(ctx:commands.Context, member_name_disc:str, role_name:str):
     rls = fetch_member_roles(ctx.author)
@@ -224,35 +223,37 @@ async def detach_role(ctx:commands.Context, member_name_disc:str, role_name:str)
     await member.remove_roles(fetch_role(role_name, ctx.guild))
     await ctx.send(f"{member_name_disc}에게서 {role_name} 역할을 해제했어요!")
 
-@Ari.command(name="채널생성", **ARIHELP["채널생성"])
+@Ari.command(name="채널생성")
 @commands.has_any_role(*DOUMI)
 async def create_channel(ctx:commands.Context, channel_name:str, category_name:str):
     await ctx.guild.create_text_channel(channel_name,
                                         category=fetch_category(category_name, ctx.guild))
 
-@Ari.command(name="정지!", **ARIHELP["정지!"])
+# 개선이 필요해 보이는데, 영감이 떠오르지 않음
+@Ari.command(name="정지!")
 @commands.has_any_role(*DOUMI)
 async def emergency_phase(ctx:commands.Context):
-    Ari.status = discord.Status.dnd
+    Ari.change_presence(status = discord.Status.dnd)
     await ctx.send("아리가 정지돼요...!!")
     exit(0)
 
 # TODO: 채널생성 
 
 # 오너 명령어
-@Ari.command(name="건국", **ARIHELP["건국"])
-@commands.has_role("오너")
-async def add_nation(ctx:commands.Context, nation_name:str):
+# 나라 관련
+@Ari.slash_command(name="건국", description=ARIDESCRIPTION["건국 [/]"], guild_ids=GUILD_IDS)
+@commands.has_role("주인")
+async def add_nation(ctx:discord.ApplicationContext):
     # 구현 안 됨
-    pass
+    await ctx.respond("멜옹")
 
-@Ari.command(name="지역리스트", **ARIHELP["지역리스트"])
-@commands.has_role("오너")
+@Ari.command(name="지역리스트")
+@commands.has_role("주인")
 async def list_area(ctx:commands.Context):
 
-    areas_length = len(AriA)
+    areas_length = len(ari_area)
     embed, embedn = initialize_embed(areas_length)
-    for fieldn, (k, v) in enumerate_fields(AriA.items()):
+    for fieldn, (k, v) in enumerate_fields(ari_area.items()):
         value = ""
         value += f"지역 ID: {k}\n"
         embed.add_field(name=f"{v.name}", value=value, inline=True)
@@ -262,49 +263,77 @@ async def list_area(ctx:commands.Context):
 
     await ctx.send(embed=embed)
     end_embed = discord.Embed()
-    end_embed.title = f"지역 총 개수: {len(AriA)}개"
+    end_embed.title = f"지역 총 개수: {len(ari_area)}개"
     await ctx.send(embed=end_embed)
 
+
 # 전체 명령어
-@Ari.command(name="도와줘", **ARIHELP["도와줘"])
-async def help(ctx:commands.Context, *command_names):
-    
-    cmds = list(Ari.commands)
+# TODO: 도와줘 명령어 개선: commands.ApplicationCommand와 commands.Command를 모두 출력
+# 개선 위해 ARIHELP 자체에서 정보를 가져오는 방식으로 변경
+# 단, commands.ApplicationCommand는 description밖에 없으므로 둘을 구분해야 함
+# 도와줘 명령어는 슬래시 커맨드가 아닌 일반 커맨드일 예정
+
+# 도와줘 명령어 기초함수
+async def help_base(send_or_respond:Generator, ephemeral=True, *command_names):
+    requirement = ":white_check_mark:"
+    usage = ":speaking_head:"
+    description = ":pencil:"
+    notice = ":warning:"
+
+    cmds:dict[str,dict] = dict()
+    for c in Ari.commands:
+        cmds[c.name] = ARIHELP[c.name]
+        cmds[c.name].setdefault("name", c.name)
+    for c in Ari.application_commands:
+        key = c.name + " [/]"
+        cmds[key] = ARIHELP[key]
+        cmds[key].setdefault("name", c.name)
     len_commands = len(cmds)
     if command_names:  # 인자가 있을 때
         len_commands = len(command_names)
-        picked_cmds:list[commands.Command] = []
-        for c in cmds:
-            if c.name in command_names:
-                picked_cmds.append(c)
+        picked_cmds = dict()
+        for k, v in cmds.items():
+            if v["name"] in command_names:
+                picked_cmds[k] = v
         cmds = picked_cmds
-
-    embed, embedn = initialize_embed(len_commands)
-    for fieldn, command in enumerate_fields(cmds):
-        if command_names:  # 인자가 있을 때
-            value = f">>> **{command.description}** 사용 가능\n\n{command.usage}\n\n{command.help}"
-            inline = False
-        else:
-            value = f">>> **{command.description}** 사용 가능\n\n{command.brief}"
-            inline = True
-        embed.add_field(name=command.name, value=value, inline=inline)
-        if fieldn == FIELDS_IN_ONE_EMBED:  # 임베드 필드 수 제한 구현
-            await ctx.send(embed=embed)
-            embed, embedn = initialize_embed(len_commands, embedn)
-
-    await ctx.send(embed=embed) # 남는 필드가 들어 있는 엠베드 출력
-    if not command_names:
-        await ctx.send("더 자세한 명령어 설명은 `!도움 <명령어>`로 확인해주세요!")
-
-
-@Ari.slash_command(name="도움", description="빗금 명령어에 정보를 출력합니다.", guild_ids=GUILD_IDS)
-async def slashhelp(ctx:discord.ApplicationContext,
-                    command_name = Option(str, "명령어", required=False)):
-    d = dict()
-    for command in Ari.application_commands:
-        d.setdefault(command.name, [command.description])
     
-    await ctx.respond(d)
+    embed, embedn = initialize_embed(len_commands)
+    for fieldn, (cmdk, cmdv) in enumerate_fields(cmds.items()):
+        prefix = "/" if cmdk.endswith("]") else Ari.command_prefix
+        value = f""">>> {requirement} **{cmdv['requirement']}**
+        
+        {usage} {prefix}{cmdv['usage']}
+        
+        {description} {cmdv['description']}
+        
+        {notice} {cmdv['notice']}"""
+        embed.add_field(name=cmdk, value=value, inline=False)
+        if fieldn == FIELDS_IN_ONE_EMBED:  # 임베드 필드 수 제한 구현
+            if ephemeral:
+                await send_or_respond(embed=embed, ephemeral=ephemeral)
+            else:
+                await send_or_respond(embed=embed)
+            embed, embedn = initialize_embed(len_commands, embedn)
+    
+    if ephemeral:
+        await send_or_respond(embed=embed, ephemeral=ephemeral)
+    else:
+        await send_or_respond(embed=embed) # 남는 필드가 들어 있는 엠베드 출력
+
+# 예외로 얘는 도우미 이상의 권한이 필요함
+@Ari.command(name="명령어", aliases=["도와줘"])
+@commands.has_any_role(*DOUMI)
+async def help(ctx:commands.Context, *command_names):
+
+    await help_base(ctx.send, False, *command_names)
+
+@Ari.slash_command(name="명령어", description=ARIDESCRIPTION["명령어 [/]"], guild_ids=GUILD_IDS)
+async def slash_help(ctx:discord.ApplicationContext, command_name:Option(str, "명령어", required=False, default=None)):
+
+    if command_name is None:
+        await help_base(ctx.respond, True)
+    else:
+        await help_base(ctx.respond, True, command_name)
 
 # 건들지 마세요~
 Ari.run(TOKEN)

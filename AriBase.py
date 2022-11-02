@@ -6,15 +6,15 @@ import json
 # 위에 있는 데이터 저장 함수 이용
 # filename 파라미터에 area가 포함되어 있으면
 # ./datas/area.json 파일에 저장
-# filename 파라미터에 nation이 포함되어 있으면
-# ./datas/nation.json 파일에 저장
+# filename 파라미터에 government이 포함되어 있으면
+# ./datas/government.json 파일에 저장
 
 def save_json(data: dict, filename: str) -> None:
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 # json 데이터 불러오기 함수
-def load_json(filename: str) -> dict|None:
+def load_json(filename: str) -> dict:
     with open(filename, "r", encoding="utf-8") as file:
         return json.load(file)
 
@@ -43,7 +43,7 @@ class AriBase:
     def __init__(self):
         self.name = ""
         self.coda = True
-        self.tradable = True
+        self.tradable: bool|None = None # 귀찮으니 알아서 True/False 지정해
 
     def change_coda(self):
         # self.coda를 반전시킴
@@ -121,7 +121,7 @@ class Value(AriBase):
     def __rmul__(self, other):
         self.mul_base(other)
 
-class OnlyOneClass(AriBase):
+class OnlyOneClass:
 
     instance_generated = False
 
@@ -133,8 +133,7 @@ class OnlyOneClass(AriBase):
             return None
 
     def __init__(self):
-        super().__init__()
-        self.tradable = False
+        pass
 
 # 단계 (추상)
 class Level(Value):
@@ -142,7 +141,6 @@ class Level(Value):
     def __init__(self):
         super().__init__()
         self.coda = False
-        self.tradable = False
         self.scale: int = 0
     
     def impact(self) -> float:
@@ -193,70 +191,49 @@ class Resource(Value):
 
     def __init__(self):
         super().__init__()
+        self.tradable = True
         self.has_limitation = True
         self.storage = 0
 
+    def recover(self):
+        if self.has_limitation and self.value < self.storage:
+            self.value = self.storage
+        
+
     def expire(self):
+        # deprecated
         # 저장량을 초과한 자원 제거
         # 단, self.has_limitation이 False면 아무 일도 일어나지 않음
         if self.has_limitation and self.value > self.storage:
             self.value = self.storage
 
-class BasicResource(Resource):
-    def __init__(self):
-        super().__init__()
 
-class DevelopmentResource(Resource):
-    def __init__(self):
-        super().__init__()
-        self.has_limitation = False
-
-class AdvancedResource(Resource):
-    def __init__(self):
-        super().__init__()
-        self.has_limitation = False
-
-class Food(BasicResource):
+class Food(Resource):
 
     def __init__(self):
         super().__init__()
         self.name = "식량"
 
-class Material(BasicResource):
+class Material(Resource):
 
     def __init__(self):
         super().__init__()
         self.name = "자재"
         self.coda = False
 
-class Science(DevelopmentResource):
 
-    def __init__(self):
-        super().__init__()
-        self.name = "과학"
-
-class Culture(DevelopmentResource):
-
-    def __init__(self):
-        super().__init__()
-        self.name = "문화"
-        self.coda = False
-
-class Gold(AdvancedResource):
-
-    def __init__(self):
-        super().__init__()
-        self.name = "금"
 
 # 행정력
 class AdministrationPower(Resource):
 
     def __init__(self):
         super().__init__()
+        self.value = 1
         self.name = "행정력"
         self.tradable = False
         self.has_limitation = False
-        self.accomodatable_population = 3
+    
+    
 
 # 자원분야
 

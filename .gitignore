@@ -5,6 +5,12 @@ token.json
 *.json
 .txt
 
+# TODOs & folders
+TODO/
+bases/
+datas/
+deprecated/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

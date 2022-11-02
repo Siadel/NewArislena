@@ -1,15 +1,59 @@
 # 시즌 0 논리
 from AriBase import *
-
+from pathlib import Path
 import random
 from copy import deepcopy
 
 # 예외처리는 AriMain.py에서 진행
 
-# 데이터 로딩
-ari_area:dict = load_json("./datas/area.json")
-ari_nation:dict = load_json("./datas/nation.json")
-ari_system:dict = load_json("./datas/system.json")
+# 데이터 로딩 (이거 전역변수임)
+path_datas = Path("./datas/")
+files = path_datas.glob("*.json")
+
+class AriDataFiles(OnlyOneClass):
+    # json에서 가져온 dict 형식 데이터를 직접 관리하는 클래스
+
+    def __init__(self):
+        super().__init__()
+        # 이하 편집기 인식을 위한 attr 선언
+        self.area:dict[str, dict] = None
+        self.government:dict[str, dict] = None
+        self.military:dict[str, dict] = None
+        self.system:dict[str, dict] = None
+        for p in list(files):
+            data = load_json(p)
+            self.__setattr__(str(p).split("\\")[-1].split(".")[0], data) # 확장자를 뺀 파일명이 attribute로 저장됨
+
+    def remove_content(self, key:str, ID:str):
+        # ID를 키로 가지는 데이터를 삭제 후 저장
+        # ID를 키로 가지는 데이터가 있으면 삭제 후 commit() 실행
+        # key는 만들어진 파일명(확장자 제외) 중 하나
+
+        del self.__dict__[key][ID]
+
+        self.save(key)
+    
+    def add_content(self, key:str, ID:str, **kwargs):
+
+        self.__dict__[key][ID] = kwargs
+
+    def save(self, *args):
+        # args에는 "area", "government", "system"이 들어갈 수 있음
+        # args에 아무것도 들어가지 않으면 모든 데이터를 save_json()을 이용해 저장
+        # 항상 self.commit() 실행
+
+        if len(args) == 0:
+            args = ("area", "government", "military", "system")
+        for arg in args:
+            if arg == "area":
+                save_json(self.area, "./datas/area.json")
+            elif arg == "government":
+                save_json(self.government, "./datas/government.json")
+            elif arg == "military":
+                save_json(self.military, "./datas/military.json")
+            elif arg == "system":
+                save_json(self.system, "./datas/system.json")
+
 
 def statgen(min:int=0, max:int=20, len:int=7) -> list:
     # 합쳐서 max가 되는 min 이상의 정수(아마도) len개의 리스트 랜덤 생성
@@ -87,6 +131,7 @@ class AriContent(AriBase):
         pass
 
 class AriSystem(AriContent, OnlyOneClass):
+    # dict로 옮겨진 json 데이터를 관리하는 클래스
 
     def __init__(self):
         AriContent.__init__(self)
@@ -97,42 +142,26 @@ class AriSystem(AriContent, OnlyOneClass):
         self.minor_version = 2
         self.author = "Siadel#7457"
         self.areaseq = 0
-        self.nationseq = 0
+        self.governmentseq = 0
+        self.militaryseq = 0
         self.turn = AriTurn()
 
-    def remove_content(self, ID:str, key:str):
-        # ID를 키로 가지는 데이터를 삭제 후 저장
-        # ID를 키로 가지는 데이터가 없으면 KeyError 발생
-        # ID를 키로 가지는 데이터가 있으면 삭제 후 commit() 실행
-        # key가 "area"면 ari_area에서 삭제
-        # key가 "nation"이면 ari_nation에서 삭제
-
-        if key == "area":
-            del ari_area[ID]
-        elif key == "nation":
-            del ari_nation[ID]
-
-        self.save(key)
+    def IDgen(self, mode:str): # 간단하게 ID를 만드는 함수
+        if "A" in mode:
+            return mode + str(self.areaseq)
+        if "G" in mode:
+            return mode + str(self.governmentseq)
+        if "M" in mode:
+            return mode + str(self.militaryseq)
     
     def version(self):
-        return f"{self.__big_version}.{self.__middle_version}.{self.__small_version}"
+        return f"{self.major_version}.{self.minor_version}"
 
     def commit(self):
         for k, v in self.whole_info().items():
-            ari_system[k] = v
+            aridatas.system[k] = v
 
-    def save(self, *args):
-        # args에는 "area", "nation", "system"이 들어갈 수 있음
-        # args에 아무것도 들어가지 않으면 모든 데이터를 save_json()을 이용해 저장
-        # 항상 self.commit() 실행
 
-        self.commit()
-        if len(args) == 0:
-            args = ("area", "nation", "system")
-        for arg in args:
-            if arg == "area":
-                save_json(ari_area, "./datas/area.json")
-            elif arg == "nation":
-                save_json(ari_nation, "./datas/nation.json")
-            elif arg == "system":
-                save_json(ari_system, "./datas/system.json")
+aridatas = AriDataFiles()
+ari_system = AriSystem()
+ari_system.port(**aridatas.system)
