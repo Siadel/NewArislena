@@ -1,5 +1,4 @@
-from AriExce import *
-from typing import *
+from exceptions import *
 import json
 
 # json 데이터 저장 함수
@@ -19,6 +18,31 @@ def load_json(filename: str) -> dict:
         return json.load(file)
 
 ari_const = load_json("./bases/const.json")
+
+# 한국어 문자열 처리
+def nominative(word, coda):
+    # coda가 True면 word + "이"를 반환
+    # False면 word + "가"를 반환
+    if coda:
+        return word + "이"
+    else:
+        return word + "가"
+
+def objective(word, coda):
+    # coda가 True면 word + "을"를 반환
+    # False면 word + "를"를 반환
+    if coda:
+        return word + "을"
+    else:
+        return word + "를"
+
+def topicmarker(word, coda):
+    # coda가 True면 word + "은"를 반환
+    # False면 word + "는"를 반환
+    if coda:
+        return word + "은"
+    else:
+        return word + "는"
 
 # 지역과 나라를 구성하는 데 쓰이는 것들
 
@@ -41,7 +65,8 @@ class AreaOption(AriOption):
 class AriBase:
 
     def __init__(self):
-        self.name = ""
+        self.classname = self.get_classname()
+        self.term = ""
         self.coda = True
         self.tradable: bool|None = None # 귀찮으니 알아서 True/False 지정해
 
@@ -49,29 +74,11 @@ class AriBase:
         # self.coda를 반전시킴
         self.coda = not self.coda
     
-    def nominative(self):
-        # self.coda가 True면 self.name + "이"를 반환
-        # False면 self.name + "가"를 반환
-        if self.coda:
-            return self.name + "이"
-        else:
-            return self.name + "가"
-    
-    def objective(self):
-        # self.coda가 True면 self.name + "을"를 반환
-        # False면 self.name + "를"를 반환
-        if self.coda:
-            return self.name + "을"
-        else:
-            return self.name + "를"
-    
-    def topicmarker(self):
-        # self.coda가 True면 self.name + "은"를 반환
-        # False면 self.name + "는"를 반환
-        if self.coda:
-            return self.name + "은"
-        else:
-            return self.name + "는"
+
+        
+    @classmethod
+    def get_classname(cls):
+        return cls.__name__
 
 
 class Value(AriBase):
@@ -156,32 +163,32 @@ class Fertility(Abundance):
 
     def __init__(self):
         super().__init__()
-        self.name = "자원 풍요 단계"
+        self.term = "자원 풍요 단계"
 
 class Richness(Abundance):
     
     def __init__(self):
         super().__init__()
-        self.name = "자재 풍요 단계"
+        self.term = "자재 풍요 단계"
 
 class Eureka(Abundance):
     
     def __init__(self):
         super().__init__()
-        self.name = "과학 풍요 단계"
+        self.term = "과학 풍요 단계"
 
 class Inspiration(Abundance):
     
     def __init__(self):
         super().__init__()
-        self.name = "문화 풍요 단계"
+        self.term = "문화 풍요 단계"
 
 # 단계 
 class Amenity(Level):
 
     def __init__(self):
         super().__init__()
-        self.name = "쾌적 단계"
+        self.term = "쾌적 단계"
         self.scale = 0.1
 
 
@@ -212,13 +219,13 @@ class Food(Resource):
 
     def __init__(self):
         super().__init__()
-        self.name = "식량"
+        self.term = "식량"
 
 class Material(Resource):
 
     def __init__(self):
         super().__init__()
-        self.name = "자재"
+        self.term = "자재"
         self.coda = False
 
 
@@ -229,7 +236,7 @@ class AdministrationPower(Resource):
     def __init__(self):
         super().__init__()
         self.value = 1
-        self.name = "행정력"
+        self.term = "행정력"
         self.tradable = False
         self.has_limitation = False
     
@@ -245,11 +252,6 @@ class Place(Value):
         self.coda = False
         self.tradable = False
 
-class Residence(Place):
-
-    def __init__(self):
-        super().__init__()
-        self.name = "주거지"
         
 
 
@@ -275,7 +277,7 @@ class FoodField(Workplace):
 
     def __init__(self):
         super().__init__()
-        self.name = "식량 분야"
+        self.term = "식량 분야"
         self.food_yield = 3
         self.material_cost = 1
 
@@ -283,7 +285,7 @@ class MaterialField(Workplace):
     
     def __init__(self):
         super().__init__()
-        self.name = "자재 분야"
+        self.term = "자재 분야"
         self.material_yield = 6
         self.food_cost = 1
 
@@ -291,7 +293,7 @@ class ScienceField(Workplace):
     
     def __init__(self):
         super().__init__()
-        self.name = "과학 분야"
+        self.term = "과학 분야"
         self.science_yield = 1
         
         self.food_cost = 1
@@ -301,7 +303,7 @@ class CultureField(Workplace):
     
     def __init__(self):
         super().__init__()
-        self.name = "문화 분야"
+        self.term = "문화 분야"
         self.culture_yield = 1
 
         self.food_cost = 2
@@ -311,7 +313,7 @@ class CommercialField(Workplace):
     
     def __init__(self):
         super().__init__()
-        self.name = "상업 분야"
+        self.term = "상업 분야"
         self.gold_yield = 12
 
         self.food_cost = 1
@@ -321,7 +323,7 @@ class AdministrationField(Workplace):
 
     def __init__(self):
         super().__init__()
-        self.name = "행정 분야"
+        self.term = "행정 분야"
         self.administrationpower_yield = 1
 
         self.food_cost = 1
@@ -341,7 +343,7 @@ class AriTurn(OnlyOneClass, Value):
     def __init__(self):
         OnlyOneClass.__init__(self)
         Value.__init__(self)
-        self.name = "턴"
+        self.term = "턴"
         self.turn_limit = 60
 
     def next_turn(self):

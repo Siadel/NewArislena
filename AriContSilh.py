@@ -1,6 +1,6 @@
 # AriCont.py 모듈을 와일드카드 임포트해서 실험하는 파일
 
-from AriCont import *
+from cont import *
 from pprint import pprint
 
 #save_json({}, "area")

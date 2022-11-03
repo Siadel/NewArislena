@@ -1,12 +1,13 @@
 # 기성 모듈
 from sys import exit
+from typing import Callable, Any
 import discord
 from discord.ext import commands
 from discord import Option
 
 
 # 사용자 정의 모듈
-from AriGovernment import * # 여기서 이 모듈의 코드가 한 차례 실행됨
+from gov import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
 TOKEN:str = load_json("./bases/token.json")["token"]
@@ -274,7 +275,7 @@ async def list_area(ctx:commands.Context):
 # 도와줘 명령어는 슬래시 커맨드가 아닌 일반 커맨드일 예정
 
 # 도와줘 명령어 기초함수
-async def help_base(send_or_respond:Generator, ephemeral=True, *command_names):
+async def help_base(send_or_respond:Callable, ephemeral=True, *command_names):
     requirement = ":white_check_mark:"
     usage = ":speaking_head:"
     description = ":pencil:"

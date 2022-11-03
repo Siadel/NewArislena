@@ -1,4 +1,4 @@
-from AriBase import *
+from base import *
 import json
 
 # AriBase 파일 클래스 작동 실험
