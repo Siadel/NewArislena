@@ -148,37 +148,4 @@ class AriContent(AriBase):
             self.commit()
         return wrapper
 
-class AriSystem(AriContent, OnlyOneClass):
-    # dict로 옮겨진 json 데이터를 관리하는 클래스
-
-    def __init__(self):
-        AriContent.__init__(self)
-        OnlyOneClass.__init__(self)
-        self.name = "아리슬레나"
-        self.coda = False
-        self.major_version = 0
-        self.minor_version = 2
-        self.author = "Siadel#7457"
-        self.areaseq = 0
-        self.governmentseq = 0
-        self.militaryseq = 0
-        self.turn = AriTurn()
-
-    def IDgen(self, mode:str): # 간단하게 ID를 만드는 함수
-        if "A" in mode:
-            return mode + str(self.areaseq)
-        if "G" in mode:
-            return mode + str(self.governmentseq)
-        if "M" in mode:
-            return mode + str(self.militaryseq)
-    
-    def version(self):
-        return f"{self.major_version}.{self.minor_version}"
-
-    def commit(self):
-        for k, v in self.whole_info().items():
-            aridatas.system[k] = v
-
 aridatas = AriDataFiles()
-ari_system = AriSystem()
-ari_system.port(**aridatas.system)

@@ -7,7 +7,7 @@ from discord import Option
 
 
 # 사용자 정의 모듈
-from gov import * # 여기서 이 모듈의 코드가 한 차례 실행됨
+from AriGovernment import * # 여기서 이 모듈의 코드가 한 차례 실행됨
 
 # 데이터 로딩
 TOKEN:str = load_json("./bases/token.json")["token"]

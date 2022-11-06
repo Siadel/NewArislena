@@ -1,4 +1,7 @@
-from prod import *
+from AriMilitary import *
+from AriArea import *
+
+
 
 class AriGovernment(Manageable):
 
